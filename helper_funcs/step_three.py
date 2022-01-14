@@ -1,4 +1,3 @@
-
 """ STEP THREE """
 
 import requests
@@ -9,9 +8,7 @@ def scarp_tg_existing_app(stel_token):
     """scraps the web page using the provided cookie,
     returns True or False appropriately"""
     request_url = "https://my.telegram.org/apps"
-    custom_header = {
-        "Cookie": stel_token
-    }
+    custom_header = {"Cookie": stel_token}
     response_c = requests.get(request_url, headers=custom_header)
     response_text = response_c.text
     # print(response_text)
@@ -36,28 +33,20 @@ def scarp_tg_existing_app(stel_token):
         test_dc = hi_inputs[-2].text.strip()
         production_dc = hi_inputs[-1].text.strip()
         re_dict_vals = {
-            "App Configuration": {
-                "app_id": app_id,
-                "api_hash": api_hash
-            },
+            "App Configuration": {"app_id": app_id, "api_hash": api_hash},
             "Available MTProto Servers": {
-                "test_configuration": {
-                    "IP": test_configuration,
-                    "DC": test_dc
-                },
+                "test_configuration": {"IP": test_configuration, "DC": test_dc},
                 "production_configuration": {
                     "IP": production_configuration,
-                    "DC": production_dc
-                }
+                    "DC": production_dc,
+                },
             },
-            "Disclaimer": _a
+            "Disclaimer": _a,
         }
         #
         re_status_id = True
     else:
         tg_app_hash = soup.find("input", {"name": "hash"}).get("value")
-        re_dict_vals = {
-            "tg_app_hash": tg_app_hash
-        }
+        re_dict_vals = {"tg_app_hash": tg_app_hash}
         re_status_id = False
     return re_status_id, re_dict_vals
