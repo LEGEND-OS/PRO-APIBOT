@@ -1,27 +1,24 @@
-
 import logging
 import os
-
 from base64 import b64decode
 
+from helper_funcs.helper_steps import (
+    compareFiles,
+    extract_code_imn_ges,
+    get_phno_imn_ges,
+    parse_to_meaning_ful_text,
+)
+from helper_funcs.step_four import create_new_tg_app
+from helper_funcs.step_one import request_tg_code_get_random_hash
+from helper_funcs.step_three import scarp_tg_existing_app
+from helper_funcs.step_two import login_step_get_stel_cookie
 from telegram import ParseMode
 from telegram.ext import (
-    Updater,
     CommandHandler,
-    MessageHandler,
+    ConversationHandler,
     Filters,
-    ConversationHandler
-)
-
-from helper_funcs.step_one import request_tg_code_get_random_hash
-from helper_funcs.step_two import login_step_get_stel_cookie
-from helper_funcs.step_three import scarp_tg_existing_app
-from helper_funcs.step_four import create_new_tg_app
-from helper_funcs.helper_steps import (
-    get_phno_imn_ges,
-    extract_code_imn_ges,
-    parse_to_meaning_ful_text,
-    compareFiles
+    MessageHandler,
+    Updater,
 )
 
 WEBHOOK = bool(os.environ.get("WEBHOOK", False))
@@ -33,8 +30,7 @@ else:
 
 # Enable logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -45,16 +41,13 @@ GLOBAL_USERS_DICTIONARY = {}
 
 
 def start(update, context):
-    """ ConversationHandler entry_point /start """
-    update.message.reply_text(
-        Config.START_TEXT,
-        parse_mode=ParseMode.HTML
-    )
+    """ConversationHandler entry_point /start"""
+    update.message.reply_text(Config.START_TEXT, parse_mode=ParseMode.HTML)
     return INPUT_PHONE_NUMBER
 
 
 def input_phone_number(update, context):
-    """ ConversationHandler INPUT_PHONE_NUMBER state """
+    """ConversationHandler INPUT_PHONE_NUMBER state"""
     # LOGGER.info(update)
     user = update.message.from_user
     # LOGGER.info(
@@ -64,29 +57,22 @@ def input_phone_number(update, context):
     input_text = get_phno_imn_ges(update.message)
     if input_text is None:
         update.message.reply_text(
-            text=Config.IN_VALID_PHNO_PVDED,
-            parse_mode=ParseMode.HTML
+            text=Config.IN_VALID_PHNO_PVDED, parse_mode=ParseMode.HTML
         )
         return INPUT_PHONE_NUMBER
     # try logging in to my.telegram.org/apps
     random_hash = request_tg_code_get_random_hash(input_text)
-    GLOBAL_USERS_DICTIONARY.update({
-        user.id: {
-            "input_phone_number": input_text,
-            "random_hash": random_hash
-        }
-    })
+    GLOBAL_USERS_DICTIONARY.update(
+        {user.id: {"input_phone_number": input_text, "random_hash": random_hash}}
+    )
     # save the random hash returned in a dictionary
     # ask user for the **confidential** Telegram code
-    update.message.reply_text(
-        Config.AFTER_RECVD_CODE_TEXT,
-        parse_mode=ParseMode.HTML
-    )
+    update.message.reply_text(Config.AFTER_RECVD_CODE_TEXT, parse_mode=ParseMode.HTML)
     return INPUT_TG_CODE
 
 
 def input_tg_code(update, context):
-    """ ConversationHandler INPUT_TG_CODE state """
+    """ConversationHandler INPUT_TG_CODE state"""
     # LOGGER.info(update)
     user = update.message.from_user
     # LOGGER.info("Tg Code of %s: %s", user.first_name, update.message.text)
@@ -101,16 +87,13 @@ def input_tg_code(update, context):
     #
     provided_code = extract_code_imn_ges(update.message)
     if provided_code is None:
-        aes_mesg_i.edit_text(
-            text=Config.IN_VALID_CODE_PVDED,
-            parse_mode=ParseMode.HTML
-        )
+        aes_mesg_i.edit_text(text=Config.IN_VALID_CODE_PVDED, parse_mode=ParseMode.HTML)
         return INPUT_PHONE_NUMBER
     # login using provided code, and get cookie
     status_r, cookie_v = login_step_get_stel_cookie(
         current_user_creds.get("input_phone_number"),
         current_user_creds.get("random_hash"),
-        provided_code
+        provided_code,
     )
     if status_r:
         # scrap the my.telegram.org/apps page
@@ -126,7 +109,7 @@ def input_tg_code(update, context):
                 Config.APP_SHORT_NAME,
                 Config.APP_URL,
                 Config.APP_PLATFORM,
-                Config.APP_DESCRIPTION
+                Config.APP_DESCRIPTION,
             )
         # now scrap the my.telegram.org/apps page
         # it is guranteed that now the user will have an APP ID.
@@ -137,18 +120,14 @@ def input_tg_code(update, context):
             # parse the scrapped page into an user readable
             # message
             me_t = parse_to_meaning_ful_text(
-                current_user_creds.get("input_phone_number"),
-                response_dv
+                current_user_creds.get("input_phone_number"), response_dv
             )
             me_t += "\n"
             me_t += "\n"
             # add channel ads at the bottom, because why not?
             me_t += Config.FOOTER_TEXT
             # and send to the user
-            aes_mesg_i.edit_text(
-                text=me_t,
-                parse_mode=ParseMode.HTML
-            )
+            aes_mesg_i.edit_text(text=me_t, parse_mode=ParseMode.HTML)
         else:
             LOGGER.warning("creating APP ID caused error %s", response_dv)
             aes_mesg_i.edit_text(Config.ERRED_PAGE)
@@ -160,7 +139,7 @@ def input_tg_code(update, context):
 
 
 def cancel(update, context):
-    """ ConversationHandler /cancel state """
+    """ConversationHandler /cancel state"""
     # user = update.message.from_user
     # LOGGER.info("User %s canceled the conversation.", user.first_name)
     update.message.reply_text(Config.CANCELLED_MESG)
@@ -173,29 +152,18 @@ def error(update, context):
 
 
 def go_heck_verification(update, context):
-    """ just for putting dust inside their eyes 🤪🤣🤣 """
+    """just for putting dust inside their eyes 🤪🤣🤣"""
     s_m_ = update.message.reply_text(Config.VFCN_CHECKING_ONE)
-    oic = b64decode(
-        Config.ORIGINAL_CODE
-    ).decode("UTF-8")
+    oic = b64decode(Config.ORIGINAL_CODE).decode("UTF-8")
     pokk = f"{update.message.from_user.id}.py"
-    os.system(
-        f"wget {oic} -O {pokk}"
-    )
-    ret_val = compareFiles(
-        open("bot.py", "rb"),
-        open(pokk, "rb")
-    )
-    s_m_.edit_text(
-        Config.VFCN_RETURN_STATUS.format(
-            ret_status=ret_val
-        )
-    )
+    os.system(f"wget {oic} -O {pokk}")
+    ret_val = compareFiles(open("bot.py", "rb"), open(pokk, "rb"))
+    s_m_.edit_text(Config.VFCN_RETURN_STATUS.format(ret_status=ret_val))
     os.remove(pokk)
 
 
 def main():
-    """ Initial Entry Point """
+    """Initial Entry Point"""
     # Create the Updater and pass it your bot's token.
     updater = Updater(Config.TG_BOT_TOKEN)
 
@@ -205,27 +173,20 @@ def main():
     # Add conversation handler with the states
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
-
         states={
-            INPUT_PHONE_NUMBER: [MessageHandler(
-                Filters.text | Filters.contact,
-                input_phone_number
-            )],
-
-            INPUT_TG_CODE: [MessageHandler(Filters.text, input_tg_code)]
+            INPUT_PHONE_NUMBER: [
+                MessageHandler(Filters.text | Filters.contact, input_phone_number)
+            ],
+            INPUT_TG_CODE: [MessageHandler(Filters.text, input_tg_code)],
         },
-
-        fallbacks=[CommandHandler('start', start)]
+        fallbacks=[CommandHandler("start", start)],
     )
 
     tg_bot_dis_patcher.add_handler(conv_handler)
 
     # for maintaining trust
     # https://t.me/c/1481357570/588029
-    tg_bot_dis_patcher.add_handler(CommandHandler(
-        "verify",
-        go_heck_verification
-    ))
+    tg_bot_dis_patcher.add_handler(CommandHandler("verify", go_heck_verification))
 
     # log all errors
     tg_bot_dis_patcher.add_error_handler(error)
@@ -233,9 +194,7 @@ def main():
     # Start the Bot
     if WEBHOOK:
         updater.start_webhook(
-            listen="0.0.0.0",
-            port=Config.PORT,
-            url_path=Config.TG_BOT_TOKEN
+            listen="0.0.0.0", port=Config.PORT, url_path=Config.TG_BOT_TOKEN
         )
         # https://t.me/MarieOT/22915
         updater.bot.set_webhook(url=Config.URL + Config.TG_BOT_TOKEN)
