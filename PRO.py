@@ -2,6 +2,15 @@ import logging
 import os
 from base64 import b64decode
 
+from telegram import ParseMode
+from telegram.ext import (
+    CommandHandler,
+    ConversationHandler,
+    Filters,
+    MessageHandler,
+    Updater,
+)
+
 from helper_funcs.helper_steps import (
     compareFiles,
     extract_code_imn_ges,
@@ -12,14 +21,6 @@ from helper_funcs.step_four import create_new_tg_app
 from helper_funcs.step_one import request_tg_code_get_random_hash
 from helper_funcs.step_three import scarp_tg_existing_app
 from helper_funcs.step_two import login_step_get_stel_cookie
-from telegram import ParseMode
-from telegram.ext import (
-    CommandHandler,
-    ConversationHandler,
-    Filters,
-    MessageHandler,
-    Updater,
-)
 
 WEBHOOK = bool(os.environ.get("WEBHOOK", False))
 if WEBHOOK:
